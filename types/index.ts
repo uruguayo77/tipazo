@@ -2,6 +2,8 @@ export type UserType = 'worker' | 'client';
 
 export type PaymentMethod = 'card' | 'usdt' | 'ton';
 
+export type CryptoCurrency = 'USDT' | 'USDC' | 'BITCOIN' | 'ETHEREUM' | 'TRX' | 'TON';
+
 export interface User {
   id: string;
   name: string;
@@ -18,9 +20,12 @@ export interface Worker extends User {
   totalEarnings: number;
   qrCode: string;
   walletAddress?: string;
+  cryptoType?: CryptoCurrency;
+  paymentQrUrl?: string;
+  phoneNumber?: string;
   bankAccount?: {
     accountNumber: string;
-    routingNumber: string;
+    routingNumber: string; // Used for Cédula de Identidad
     bankName: string;
   };
 }
