@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User, Worker } from '@/types';
+import { User, Worker, CryptoCurrency } from '@/types';
 
 interface AuthState {
   user: User | Worker | null;
@@ -11,7 +11,13 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: Partial<Worker>, password: string) => Promise<void>;
   logout: () => void;
-  updateProfile: (userData: Partial<Worker>) => Promise<void>;
+  updateProfile: (userData: Partial<Worker> & { 
+    cryptoType?: CryptoCurrency;
+    bankName?: string;
+    cedula?: string;
+    phoneNumber?: string;
+    paymentQrUrl?: string;
+  }) => Promise<void>;
 }
 
 // Mock function to simulate API calls
@@ -86,16 +92,49 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, isAuthenticated: false });
       },
       
-      updateProfile: async (userData: Partial<Worker>) => {
+      updateProfile: async (userData: Partial<Worker> & { 
+        cryptoType?: CryptoCurrency;
+        bankName?: string;
+        cedula?: string;
+        phoneNumber?: string;
+        paymentQrUrl?: string;
+      }) => {
         set({ isLoading: true, error: null });
         try {
           // Mock API call
           await mockApiCall(null, 500);
           
-          set((state) => ({
-            user: state.user ? { ...state.user, ...userData } : null,
-            isLoading: false
-          }));
+          set((state) => {
+            if (!state.user) return { isLoading: false };
+            
+            // Handle payment information updates
+            const updatedUser = { ...state.user, ...userData };
+            
+            // Update bank information
+            if (userData.bankName || userData.cedula) {
+              updatedUser.bankAccount = {
+                ...(updatedUser.bankAccount || {}),
+                bankName: userData.bankName || updatedUser.bankAccount?.bankName || '',
+                routingNumber: userData.cedula || updatedUser.bankAccount?.routingNumber || '',
+                accountNumber: updatedUser.bankAccount?.accountNumber || '',
+              };
+            }
+            
+            // Update phone number
+            if (userData.phoneNumber) {
+              updatedUser.phoneNumber = userData.phoneNumber;
+            }
+            
+            // Update payment QR code
+            if (userData.paymentQrUrl) {
+              updatedUser.paymentQrUrl = userData.paymentQrUrl;
+            }
+            
+            return {
+              user: updatedUser,
+              isLoading: false
+            };
+          });
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : "Profile update failed", 
